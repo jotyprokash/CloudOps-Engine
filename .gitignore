@@ -1,0 +1,11 @@
+# Real inventories often contain account IDs, ARNs, internal hostnames, and IPs.
+# Keep artifacts local unless they are reviewed and intentionally shared.
+inventory/json/*.json
+inventory/csv/*.csv
+inventory/summary/*.tsv
+artifacts/**/*.md
+artifacts/**/*.conf
+artifacts/**/*.txt
+artifacts/**/*.tsv
+
+!.gitkeep
