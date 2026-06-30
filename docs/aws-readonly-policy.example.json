@@ -1,0 +1,24 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudOpsReadOnlyDiscovery",
+      "Effect": "Allow",
+      "Action": [
+        "route53:ListHostedZones",
+        "route53:ListResourceRecordSets",
+        "acm:ListCertificates",
+        "acm:DescribeCertificate",
+        "ec2:DescribeRegions",
+        "ec2:DescribeInstances",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeAddresses",
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DescribeTargetGroups",
+        "ecs:ListClusters",
+        "eks:ListClusters"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
