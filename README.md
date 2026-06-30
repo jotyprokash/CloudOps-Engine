@@ -29,7 +29,7 @@ DETECT_CONTAINERS=true
 ```bash
 bin/scan-aws.sh
 bin/map-domains.sh
-bin/write-report.sh
+bin/write-report.sh --name <report-name>
 ```
 
 Or run the same flow in one pass:
@@ -42,6 +42,7 @@ Open the report:
 
 ```text
 artifacts/report/index.html
+artifacts/report/<report-name>-<timestamp>.html
 ```
 
 Run checks after reviewing the generated plan:
@@ -62,6 +63,6 @@ bin/write-nginx.sh --upstream http://__UPSTREAM_HOST__:__UPSTREAM_PORT__ --cert 
 
 - Inventory: `inventory/json/`, `inventory/csv/`, `inventory/summary/`
 - Plans: `artifacts/plans/`
-- HTML report: `artifacts/report/index.html`
+- HTML reports: `artifacts/report/index.html`, `artifacts/report/<report-name>-<timestamp>.html`
 - Optional Nginx files: `artifacts/nginx/`
 - Validation output: `artifacts/validation/`
