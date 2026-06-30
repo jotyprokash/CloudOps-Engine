@@ -29,6 +29,50 @@ label_domain_with_suffixes() {
   label_text "$domain"
 }
 
+is_dns_housekeeping_record() {
+  case "${1:-}" in
+    NS|SOA) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_acm_validation_record() {
+  local record_name="${1:-}" target="${2:-}"
+  [[ "$record_name" == _* ]] && [[ "$target" == *.acm-validations.aws* ]]
+}
+
+suggest_record_name() {
+  local current_record="${1:-}"
+  local class="${2:-unknown}"
+  local clean_record="${current_record%.}"
+  local env_scoped_pattern=""
+
+  case "$class" in
+    live)
+      printf '%s' "$clean_record"
+      ;;
+    staging)
+      env_scoped_pattern='(^|[.])(stage|staging)([.-]|$)'
+      if [[ "$clean_record" =~ $env_scoped_pattern ]]; then
+        printf '%s' "$clean_record"
+      else
+        printf 'stage.%s' "$clean_record"
+      fi
+      ;;
+    development)
+      env_scoped_pattern='(^|[.])(dev|development)([.-]|$)'
+      if [[ "$clean_record" =~ $env_scoped_pattern ]]; then
+        printf '%s' "$clean_record"
+      else
+        printf 'dev.%s' "$clean_record"
+      fi
+      ;;
+    *)
+      printf '<needs-owner-review>'
+      ;;
+  esac
+}
+
 write_labeled_resources() {
   local output="${PLAN_DIR}/labeled-resources.md"
   {
@@ -41,6 +85,7 @@ write_labeled_resources() {
 
   if [[ -f "${SUMMARY_DIR}/route53-records.tsv" ]]; then
     tail -n +2 "${SUMMARY_DIR}/route53-records.tsv" | while IFS=$'\t' read -r zone_id zone_name record_name record_type ttl targets; do
+      is_dns_housekeeping_record "$record_type" && continue
       local class confidence evidence
       evidence="${record_name} ${targets} ${zone_name}"
       class="$(label_domain_with_suffixes "$evidence")"
@@ -91,6 +136,7 @@ write_domain_mapping() {
 
   [[ -f "${SUMMARY_DIR}/route53-records.tsv" ]] || return 0
   tail -n +2 "${SUMMARY_DIR}/route53-records.tsv" | while IFS=$'\t' read -r zone_id zone_name record_name record_type ttl targets; do
+    is_dns_housekeeping_record "$record_type" && continue
     case "$record_type" in
       A|AAAA|CNAME) ;;
       *) continue ;;
@@ -101,10 +147,14 @@ write_domain_mapping() {
     confidence="$(confidence_for_label "$class")"
     suggested="<needs-owner-review>"
     notes="Create parallel DNS first; validate TLS and routing; cut over only after owner approval."
+    if is_acm_validation_record "$clean_record" "$targets"; then
+      notes="ACM validation record: keep in place and review only when certificate ownership changes."
+      printf '| %s | %s | %s | %s | %s | %s | %s |\n' "$clean_record" "$record_type" "$targets" "$class" "$suggested" "$confidence" "$notes" >> "$output"
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$clean_record" "$record_type" "$targets" "$class" "$suggested" "$confidence" "$notes" >> "$machine"
+      continue
+    fi
     case "$class" in
-      live) suggested="$clean_record" ;;
-      staging) suggested="staging.${clean_record#staging.}" ;;
-      development) suggested="dev.${clean_record#dev.}" ;;
+      live|staging|development) suggested="$(suggest_record_name "$clean_record" "$class")" ;;
       unknown) notes="Unknown environment: do not move traffic until ownership and environment are confirmed." ;;
     esac
     printf '| %s | %s | %s | %s | %s | %s | %s |\n' "$clean_record" "$record_type" "$targets" "$class" "$suggested" "$confidence" "$notes" >> "$output"
@@ -231,8 +281,12 @@ write_validation_inputs() {
   done
   if [[ -f "${SUMMARY_DIR}/route53-records.tsv" ]]; then
     tail -n +2 "${SUMMARY_DIR}/route53-records.tsv" | while IFS=$'\t' read -r zone_id zone_name record_name record_type ttl targets; do
+      is_dns_housekeeping_record "$record_type" && continue
       case "$record_type" in
-        A|AAAA|CNAME) printf '%s\t%s\t%s\n' "$zone_id" "$record_name" "$record_type" >> "$route53_file" ;;
+        A|AAAA|CNAME)
+          is_acm_validation_record "${record_name%.}" "$targets" && continue
+          printf '%s\t%s\t%s\n' "$zone_id" "$record_name" "$record_type" >> "$route53_file"
+          ;;
       esac
     done
   fi
