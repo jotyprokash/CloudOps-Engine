@@ -29,7 +29,9 @@ regions() {
       --query 'Regions[?OptInStatus==`opt-in-not-required` || OptInStatus==`opted-in`].RegionName' \
       --output text | tr '\t' '\n'
   else
-    printf '%s\n' "${AWS_REGION:-${AWS_DEFAULT_REGION:-us-east-1}}"
+    local profile_region
+    profile_region="$(aws_cli configure get region 2>/dev/null || true)"
+    printf '%s\n' "${AWS_REGION:-${AWS_DEFAULT_REGION:-${profile_region:-us-east-1}}}"
   fi
 }
 
@@ -70,7 +72,7 @@ discover_route53() {
       aws_cli route53 list-resource-record-sets --hosted-zone-id "$zone_id" --output json > "$record_file"
       aws_cli route53 list-resource-record-sets \
         --hosted-zone-id "$zone_id" \
-        --query 'ResourceRecordSets[].[Name,Type,TTL,join(`;`,ResourceRecords[].Value),AliasTarget.DNSName]' \
+        --query 'ResourceRecordSets[].[Name,Type,TTL,join(`;`,not_null(ResourceRecords[].Value, [``])),AliasTarget.DNSName]' \
         --output text |
         while IFS=$'\t' read -r record_name record_type ttl records alias; do
           [[ -n "${record_name:-}" ]] || continue
