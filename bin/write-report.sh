@@ -11,6 +11,7 @@ PLAN_DIR="${ROOT_DIR}/${WORK_DIR}/plans"
 REPORT_DIR="${ROOT_DIR}/${WORK_DIR}/report"
 REPORT_FILE="${REPORT_DIR}/index.html"
 REPORT_TIME="$(timestamp_utc)"
+REPORT_STAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 
 [[ -d "$PLAN_DIR" ]] || {
   printf 'Missing %s. Run bin/map-domains.sh first.\n' "$PLAN_DIR" >&2
@@ -30,6 +31,20 @@ report_text() {
   value="${value//\`artifacts\/plans\/labeled-resources.md\`/the labeled resources section}"
   value="${value//\`artifacts\/plans\/domain-mapping.md\`/the domain map section}"
   printf '%s' "$value"
+}
+
+safe_report_name() {
+  local value="${1:-cloudops-report}"
+  value="$(printf '%s' "$value" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9._-]/-/g; s/-\{2,\}/-/g; s/^-//; s/-$//')"
+  printf '%s' "${value:-cloudops-report}"
+}
+
+usage() {
+  cat <<'EOF'
+Usage: bin/write-report.sh [--name <report-name>]
+
+Writes a timestamped HTML report and refreshes artifacts/report/index.html.
+EOF
 }
 
 render_markdown_table() {
@@ -150,6 +165,34 @@ write_section() {
 }
 
 main() {
+  local report_name="${AWS_PROFILE:-cloudops-report}"
+  local named_report_file
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --name)
+        shift
+        [[ $# -gt 0 ]] || {
+          printf 'Missing value for --name\n' >&2
+          exit 1
+        }
+        report_name="$1"
+        ;;
+      -h|--help)
+        usage
+        return 0
+        ;;
+      *)
+        printf 'Unknown argument: %s\n' "$1" >&2
+        usage >&2
+        exit 1
+        ;;
+    esac
+    shift
+  done
+
+  named_report_file="${REPORT_DIR}/$(safe_report_name "$report_name")-${REPORT_STAMP}.html"
+
   mkdir -p "$REPORT_DIR"
 
   {
@@ -295,9 +338,12 @@ EOF
 </body>
 </html>
 EOF
-  } > "$REPORT_FILE"
+  } > "$named_report_file"
 
-  printf 'Wrote HTML report to %s\n' "$REPORT_FILE"
+  cp "$named_report_file" "$REPORT_FILE"
+
+  printf 'Wrote HTML report to %s\n' "$named_report_file"
+  printf 'Updated latest report at %s\n' "$REPORT_FILE"
 }
 
 main "$@"
