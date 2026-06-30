@@ -39,6 +39,7 @@ ensure_dirs() {
     "${ROOT_DIR}/${INVENTORY_DIR}/json" \
     "${ROOT_DIR}/${INVENTORY_DIR}/csv" \
     "${ROOT_DIR}/${INVENTORY_DIR}/summary" \
+    "${ROOT_DIR}/${WORK_DIR}/report" \
     "${ROOT_DIR}/${WORK_DIR}/plans" \
     "${ROOT_DIR}/${WORK_DIR}/nginx" \
     "${ROOT_DIR}/${WORK_DIR}/validation"

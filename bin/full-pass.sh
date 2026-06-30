@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 "${SCRIPT_DIR}/scan-aws.sh"
 "${SCRIPT_DIR}/map-domains.sh"
 "${SCRIPT_DIR}/write-nginx.sh"
+"${SCRIPT_DIR}/write-report.sh"
 
 cat <<'EOF'
 Read-only scan and mapping pass complete.
@@ -14,6 +15,7 @@ Next review:
 - inventory/json/
 - inventory/csv/
 - artifacts/plans/
+- artifacts/report/
 - artifacts/nginx/
 
 Validation helpers:

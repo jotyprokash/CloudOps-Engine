@@ -5,7 +5,9 @@ inventory/csv/*.csv
 inventory/summary/*.tsv
 artifacts/**/*.md
 artifacts/**/*.conf
+artifacts/**/*.html
 artifacts/**/*.txt
 artifacts/**/*.tsv
+settings/settings.env
 
 !.gitkeep
